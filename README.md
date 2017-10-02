@@ -1,7 +1,7 @@
 # fps-vis
 A short mp4 showing 60, 30 and 15 fps
 
-![fps mp4](https://giant.gfycat.com/FantasticGentleGoldeneye.mp4)
+See video in action: https://gfycat.com/FantasticGentleGoldeneye
 
 ## To run
 
