@@ -11,15 +11,17 @@ import subprocess
 
 from PIL import Image, ImageDraw, ImageFont
 
-WIDTH = 480
-HEIGHT = 300
+fps_levels = [120, 60, 30, 15]
+max_fps = max(fps_levels)
+width = 480
+height = len(fps_levels) * 100
 
-PIC_DIR = 'outfps'
-if os.path.exists(PIC_DIR):
+pic_dir = 'outfps'
+if os.path.exists(pic_dir):
     # make sure we don't use images from a previous run
-    shutil.rmtree(PIC_DIR)
+    shutil.rmtree(pic_dir)
 
-os.mkdir(PIC_DIR)
+os.mkdir(pic_dir)
 
 # get a font
 fnt = ImageFont.truetype('/Library/Fonts/Roboto-Bold.ttf', 100)
@@ -31,55 +33,35 @@ y_inc = 100
 # 450 is barely visible from the right
 #x = -280
 x_start = 10
-f_60_x = x_start
-f_30_x = x_start
-f_15_x = x_start
-x_inc = 8
+x_inc = 4
+f_x = [x_start] * len(fps_levels)
+
+
 # +2 makes it loop more smoothly, not sure why
-frame_count = (WIDTH // x_inc) + 2
-for i in range(frame_count):
-    img = Image.new('RGB', (WIDTH, HEIGHT), (0,0,0))
+frame_count = (width // x_inc) + 1
+for frame in range(frame_count):
+    img = Image.new('RGB', (width, height), (0,0,0))
     draw = ImageDraw.Draw(img)
 
-    # start centered
-    draw.text((f_60_x, y_start), "60FPS", font=fnt, fill=(255,255,255))
-    draw.text((f_30_x, y_start + y_inc), "30FPS", font=fnt, fill=(255,255,255))
-    draw.text((f_15_x, y_start + 2 * y_inc), "15FPS", font=fnt, fill=(255,255,255))
-
-    # finish centered
-    draw.text((f_60_x - WIDTH, y_start), "60FPS", font=fnt, fill=(255,255,255))
-    draw.text((f_30_x - WIDTH, y_start + y_inc), "30FPS", font=fnt, fill=(255,255,255))
-    draw.text((f_15_x - WIDTH, y_start + 2 * y_inc), "15FPS", font=fnt, fill=(255,255,255))
+    for i, fps in enumerate(fps_levels):
+        # start centered
+        draw.text((f_x[i], y_start + y_inc * i), "%sFPS" % fps, font=fnt, fill=(255,255,255))
+        # finish centered
+        draw.text((f_x[i] - width, y_start + y_inc * i), "%sFPS" % fps, font=fnt, fill=(255,255,255))
+        # update positions
+        skip_frames = max_fps // fps
+        if frame % skip_frames == skip_frames - 1:
+            f_x[i] += x_inc * skip_frames
 
     # img.show()
     # exit()
-    img.save(os.path.join(PIC_DIR, '%03d.png' % i))
-    if i > frame_count / 2:
-        sys.stdout.write('%s,' % (f_60_x - WIDTH))
-    else:
-        sys.stdout.write('%s,' % f_60_x)
-
-    # update positions
-    f_60_x += x_inc
-    if i % 2 == 1:
-        f_30_x += x_inc * 2
-    if i % 4 == 3:
-        f_15_x += x_inc * 4
+    img.save(os.path.join(pic_dir, '%03d.png' % frame))
+    sys.stdout.write('.')
 
 
 print('done generating images')
-cmd = 'ffmpeg -y -r 60 -framerate 60 -i {pic_dir}/%03d.png video+3.mp4'.format(pic_dir=PIC_DIR)
+cmd = 'ffmpeg -y -framerate {max_fps} -i {pic_dir}/%03d.png video.mp4'.format(pic_dir=pic_dir, max_fps=max_fps)
 print(cmd)
 subprocess.check_call(cmd, shell=True)
 
 print('done generating video.mp4')
-'''ffmpeg -y -framerate 60 -i outfps/%03d.png -vcodec libx264 -x264-params keyint=1:no-scenecut video.mp4
-ffmpeg -y -framerate 60 -i outfps/%03d.png \
-    -x264opts no-scenecut -g 1 \
-    video.mp4
-
-
-ffmpeg -y -framerate 60 -i outfps/%03d.png -vcodec mjpeg video.mj.mp4
-
-
-'''
